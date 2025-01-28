@@ -96,7 +96,8 @@ export class AuthService {
     async forgotPassword(email: string) {
         const user = await this.usersService.findByEmail(email);
         if (!user) throw new NotFoundException('User with this email not found');
-        const code = this.usersService.generateVerificationCode(user.id);
+        const code = await this.usersService.generateVerificationCode(user.id);
+        console.log('verification code', code);
 
         return code;
     }
