@@ -9,6 +9,7 @@ import { ResponseInterceptor } from './common/interceptors/response.interceptor'
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { ConfigModule } from '@nestjs/config';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
+import { EscrowModule } from './modules/escrow/escrow.module';
 
 @Module({
   imports: [
@@ -18,7 +19,8 @@ import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
       // load: [config]
     }),
     AuthModule,
-    UsersModule
+    UsersModule,
+    EscrowModule
   ],
   controllers: [AppController],
   providers: [
