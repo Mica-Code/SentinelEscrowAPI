@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/config/prisma.service';
 import { CreateEscrowDto } from '../dto/create-escrow.dto';
+import { Prisma, TransactionType } from '@prisma/client';
+import { PaginationQueryDto } from 'src/common/dtos/pagination-query.dto';
 
 @Injectable()
 export class EscrowService {
@@ -59,6 +61,15 @@ export class EscrowService {
                         }
                     }
                 });
+                // create transaction for buyer
+                await prisma.transaction.create({
+                    data: {
+                        userId,
+                        escrowId: escrow.id,
+                        type: TransactionType.ESCROW_FUND,
+                        amount: totalAmount,
+                    },
+                });
             }
 
             return escrow;
@@ -67,5 +78,37 @@ export class EscrowService {
         return escrow.id;
     }
 
-    
+    async getEscrowHistory(userId, { limit, page }: PaginationQueryDto) {
+        const whereClause: Prisma.EscrowWhereInput = {
+            OR: [
+                { initiatorId: userId },
+                { counterpartyId: userId }
+            ]
+        };
+        const escrows = await this.prisma.escrow.findMany({
+            where: whereClause,
+            skip: (page - 1) * limit,
+            take: limit,
+            orderBy: { createdAt: 'desc' },
+            include: {
+                products: true,
+                initiator: {
+                    omit: { password_hash: true }
+                },
+                counterparty: {
+                    omit: { password_hash: true }
+                }
+            }
+        });
+
+        const totalEscrows = await this.prisma.escrow.count({where: whereClause});
+
+        return {
+            items: escrows,
+            currentPage: page,
+            totalPages: Math.ceil(totalEscrows / limit),
+            totalItems: totalEscrows,
+        }
+    }
+
 }

@@ -115,16 +115,17 @@ model EscrowProduct {
 }
 
 model Transaction {
-  id        String            @id @default(ulid()) @map("id")
-  userId    String            @map("user_id") // Who made the transaction
-  escrowId  String?           @map("escrow_id") // Link to escrow if applicable
-  type      TransactionType   @map("type") // Enum: DEPOSIT, ESCROW_FUND, etc.
-  amount    Float             @map("amount")
-  currency  String            @default("USD") @map("currency")
-  status    TransactionStatus @default(PENDING) @map("status") // pending, successful, failed
-  reference String            @unique @map("reference") // Unique transaction reference
-  createdAt DateTime          @default(now()) @map("created_at")
-  updatedAt DateTime          @updatedAt @map("updated_at")
+  id          String            @id @default(ulid()) @map("id")
+  userId      String            @map("user_id") // Who made the transaction
+  escrowId    String?           @map("escrow_id") // Link to escrow if applicable
+  type        TransactionType   @map("type") // Enum: DEPOSIT, ESCROW_FUND, etc.
+  amount      Float             @map("amount")
+  description String?           @map("description")
+  currency    String            @default("USD") @map("currency")
+  status      TransactionStatus @default(PENDING) @map("status") // pending, successful, failed
+  reference   String            @default(uuid()) @map("reference") // Unique transaction reference
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
 
   user   User    @relation(fields: [userId], references: [id])
   escrow Escrow? @relation(fields: [escrowId], references: [id])
