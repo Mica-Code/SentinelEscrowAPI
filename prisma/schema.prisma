@@ -13,6 +13,41 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum EscrowRole {
+  BUYER
+  SELLER
+}
+
+enum EscrowStatus {
+  PENDING // Created but not yet funded
+  FUNDED // Money is in escrow
+  SHIPPED // Seller has shipped (if applicable)
+  DELIVERED // Buyer has confirmed receipt
+  COMPLETED // Transaction successfully closed
+  CANCELLED // Escrow was canceled before completion
+  DISPUTED // A dispute was raised
+}
+
+enum TransactionType {
+  DEPOSIT // User funding their wallet
+  ESCROW_FUND // Money moved into escrow
+  ESCROW_RELEASE // Money released to the seller
+  REFUND // Money refunded to buyer
+  WITHDRAWAL // User withdrawing funds
+}
+
+enum TransactionStatus {
+  PENDING
+  SUCCESSFUL
+  FAILED
+}
+
+enum DisputeStatus {
+  OPEN
+  RESOLVED
+  CLOSED
+}
+
 model User {
   id                     String    @id @default(uuid())
   email                  String    @unique
@@ -29,7 +64,11 @@ model User {
   created_at             DateTime  @default(now())
   updated_at             DateTime  @updatedAt
 
-  Wallet Wallet?
+  Wallet               Wallet?
+  escrows_initiated    Escrow[]      @relation("EscrowInitiator") // Escrows where the user is the initiator
+  escrows_counterparty Escrow[]      @relation("EscrowCounterparty") // Escrows where the user is the counterparty
+  transactions         Transaction[]
+  disputes             Dispute[]
 }
 
 model Wallet {
@@ -41,4 +80,66 @@ model Wallet {
   updated_at     DateTime @updatedAt
 
   user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+}
+
+model Escrow {
+  id             String       @id @default(ulid()) @map("id")
+  initiatorId    String       @map("initiator_id") // Who created the escrow
+  counterpartyId String?      @map("counterparty_id") // The other party
+  role           EscrowRole   @map("role") // "BUYER" or "SELLER"
+  totalAmount    Float        @map("total_amount") // Total price of all products
+  currency       String       @default("NGN") @map("currency")
+  deliveryDate   DateTime?    @map("delivery_date")
+  notes          String?      @map("notes")
+  status         EscrowStatus @default(PENDING) @map("status") // Enum status
+  isFunded       Boolean      @default(false) @map("is_funded")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+
+  initiator    User            @relation("EscrowInitiator", fields: [initiatorId], references: [id])
+  counterparty User?           @relation("EscrowCounterparty", fields: [counterpartyId], references: [id])
+  products     EscrowProduct[]
+  transactions Transaction[]
+  disputes     Dispute[]
+}
+
+model EscrowProduct {
+  id        String @id @default(uuid()) @map("id")
+  escrowId  String @map("escrow_id")
+  name      String @map("name")
+  unitPrice Float  @map("unit_price")
+  quantity  Int    @map("quantity")
+  totalCost Float  @map("total_cost") // unit_price * quantity
+
+  escrow Escrow @relation(fields: [escrowId], references: [id], onDelete: Cascade)
+}
+
+model Transaction {
+  id          String            @id @default(ulid()) @map("id")
+  userId      String            @map("user_id") // Who made the transaction
+  escrowId    String?           @map("escrow_id") // Link to escrow if applicable
+  type        TransactionType   @map("type") // Enum: DEPOSIT, ESCROW_FUND, etc.
+  amount      Float             @map("amount")
+  description String?           @map("description")
+  currency    String            @default("USD") @map("currency")
+  status      TransactionStatus @default(PENDING) @map("status") // pending, successful, failed
+  reference   String            @default(uuid()) @map("reference") // Unique transaction reference
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
+
+  user   User    @relation(fields: [userId], references: [id])
+  escrow Escrow? @relation(fields: [escrowId], references: [id])
+}
+
+model Dispute {
+  id          String        @id @default(uuid()) @map("id")
+  escrowId    String        @map("escrow_id")
+  initiatorId String        @map("initiator_id") // User who raised the dispute
+  reason      String        @map("reason")
+  status      DisputeStatus @default(OPEN) @map("status") // open, resolved, closed
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  escrow    Escrow @relation(fields: [escrowId], references: [id], onDelete: Cascade)
+  initiator User   @relation(fields: [initiatorId], references: [id])
 }
