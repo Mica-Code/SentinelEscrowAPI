@@ -10,6 +10,7 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { ConfigModule } from '@nestjs/config';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 import { EscrowModule } from './modules/escrow/escrow.module';
+import { PaymentsModule } from './modules/payments/payments.module';
 
 @Module({
   imports: [
@@ -20,7 +21,8 @@ import { EscrowModule } from './modules/escrow/escrow.module';
     }),
     AuthModule,
     UsersModule,
-    EscrowModule
+    EscrowModule,
+    PaymentsModule
   ],
   controllers: [AppController],
   providers: [
