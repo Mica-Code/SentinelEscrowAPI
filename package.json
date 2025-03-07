@@ -38,6 +38,7 @@
     "passport-jwt": "^4.0.1",
     "passport-local": "^1.0.0",
     "paystack-sdk": "^2.5.19",
+    "pg": "^8.13.3",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.8.1"
   },
